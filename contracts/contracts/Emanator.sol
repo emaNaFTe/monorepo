@@ -156,8 +156,33 @@ contract Emanator is ERC721, IERC721Receiver, DSMath {
       require(block.timestamp < endTime, "The current auction has ended. Please start a new one.");
       // TODO: Add a minimum bid increase threshold
       require(bidAmount > _auction.highBid, "you must bid more than the current high bid");
+      uint perSecBid = bidAmount / winLength;
 
-      tokenX.transferFrom(msg.sender, address(this), bidAmount);
+      host.callAgreement(
+            cfa,
+            abi.encodeWithSelector(
+                cfa.createFlow.selector,
+                tokenX,
+                address(this),
+                perSecBid,
+                new bytes(0)
+            )
+        );
+
+     if (_auction.highBid > 0){
+         host.callAgreement(
+            cfa,
+            abi.encodeWithSelector(
+                cfa.deleteFlow.selector,
+                tokenX,
+                _auction.highBidder,
+                address(this),
+                new bytes(0)
+            )
+        );
+     }
+
+    //   tokenX.transferFrom(msg.sender, address(this), bidAmount);
 
       _auction.highBid = bidAmount;
       _auction.highBidder = msg.sender;
