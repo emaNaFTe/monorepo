@@ -159,58 +159,83 @@ contract('Emanator', (accounts) => {
   //   assert.equal(await app.currentGeneration.call(), '2')
   // })
 
-  const runAuction = async (bids) => {
-    console.log(
-      `======= New auction - Generation ${await app.currentGeneration.call()} =======`
-    )
-    await bids.forEach(async (bid) => {
-      await web3tx(app.bid, `${bid.label} bids ${bid.amount}`)(
-        toWad(bid.amount),
-        { from: bid.account }
-      )
-    })
-    let timeLeft = await app.checkTimeRemaining()
-    time.increase(timeLeft + 1)
-    console.log('---AUCTION ENDED---')
-    await printRealtimeBalance('Auction revenue generated', app.address)
-    await web3tx(
-      app.settleAndBeginAuction,
-      `Bob settles the auction`
-    )({ from: bob })
-    console.log('---AUCTION SETTLED---')
-    await printRealtimeBalance('Auction', app.address)
-    await printRealtimeBalance('Creator', creator)
-    await printRealtimeBalance('Bob', bob)
-    await printShares('Bob', bob)
-    await printRealtimeBalance('Carol', carol)
-    await printShares('Carol', carol)
-    await printRealtimeBalance('Dan', dan)
-    await printShares('Dan', dan)
-  }
+  // const runSingleBidAuction = async (bids) => {
+  //   console.log(
+  //     `======= New auction - Generation ${await app.currentGeneration.call()} =======`
+  //   )
+  //   await bids.forEach(async (bid) => {
+  //     await web3tx(app.bid, `${bid.label} bids ${bid.amount}`)(
+  //       toWad(bid.amount),
+  //       { from: bid.account }
+  //     )
+  //   })
+  //   let timeLeft = await app.checkTimeRemaining()
+  //   time.increase(timeLeft + 1)
+  //   console.log('---AUCTION ENDED---')
+  //   await printRealtimeBalance('Auction revenue generated', app.address)
+  //   await web3tx(
+  //     app.settleAndBeginAuction,
+  //     `Bob settles the auction`
+  //   )({ from: bob })
+  //   console.log('---AUCTION SETTLED---')
+  //   await printRealtimeBalance('Auction', app.address)
+  //   await printRealtimeBalance('Creator', creator)
+  //   await printRealtimeBalance('Bob', bob)
+  //   await printShares('Bob', bob)
+  //   await printRealtimeBalance('Carol', carol)
+  //   await printShares('Carol', carol)
+  //   await printRealtimeBalance('Dan', dan)
+  //   await printShares('Dan', dan)
+  // }
 
-  it('transfers 70% of the second auction revenue to the creator and 30% to the winner of auction 1', async () => {
+  // it('transfers 70% of the second auction revenue to the creator and 30% to the winner of auction 1', async () => {
+  //   await printRealtimeBalance('Auction Contract', app.address)
+  //   await printRealtimeBalance('Creator', creator)
+  //   await printRealtimeBalance('Bob', bob)
+  //   await printRealtimeBalance('Dan', dan)
+  //   await printRealtimeBalance('Carol', carol)
+
+  //   ////// NEW AUCTION - Generation 1 /////
+  //   let bids = [{ account: bob, amount: 10, label: 'Bob' }]
+  //   await runSingleBidAuction(bids)
+
+  //   ////// NEW AUCTION - Generation 2 /////
+  //   bids = [{ account: carol, amount: 10, label: 'Carol' }]
+  //   await runSingleBidAuction(bids)
+
+  //   ////// NEW AUCTION - Generation 3 /////
+  //   bids = [{ account: dan, amount: 100, label: 'Dan' }]
+  //   await runSingleBidAuction(bids)
+
+  //   ////// NEW AUCTION - Generation 4 /////
+  //   bids = [{ account: dan, amount: 100, label: 'Dan' }]
+  //   await runSingleBidAuction(bids)
+
+  //   // TODO : write logic to check the expected distribution split
+  // })
+
+  it('allows Bob to create a bidding flow', async () => {
+
     await printRealtimeBalance('Auction Contract', app.address)
     await printRealtimeBalance('Creator', creator)
+    await printRealtimeBalance('Flow Recipient', '0xe4B47575D73Bc30a13088BD6a4df325E7b05c6c8')
     await printRealtimeBalance('Bob', bob)
-    await printRealtimeBalance('Dan', dan)
-    await printRealtimeBalance('Carol', carol)
 
-    ////// NEW AUCTION - Generation 1 /////
-    let bids = [{ account: bob, amount: 10, label: 'Bob' }]
-    await runAuction(bids)
-
-    ////// NEW AUCTION - Generation 2 /////
-    bids = [{ account: carol, amount: 10, label: 'Carol' }]
-    await runAuction(bids)
-
-    ////// NEW AUCTION - Generation 3 /////
-    bids = [{ account: dan, amount: 100, label: 'Dan' }]
-    await runAuction(bids)
-
-    ////// NEW AUCTION - Generation 4 /////
-    bids = [{ account: dan, amount: 100, label: 'Dan' }]
-    await runAuction(bids)
-
-    // TODO : write logic to check the expected distribution split
+    await web3tx(app.bid, `Account ${bob} bids 1 DAI per second`)(toWad(30), { from: bob })
+    console.log('---AFTER 6 SECONDS---')
+    time.increase(6)
+    await printRealtimeBalance('Auction Contract', app.address)
+    await printRealtimeBalance('Flow Recipient', '0xe4B47575D73Bc30a13088BD6a4df325E7b05c6c8')
+    await printRealtimeBalance('Bob', bob)
+    console.log('---AFTER 25 SECONDS---')
+    time.increase(19)
+    await printRealtimeBalance('Auction Contract', app.address)
+    await printRealtimeBalance('Flow Recipient', '0xe4B47575D73Bc30a13088BD6a4df325E7b05c6c8')
+    await printRealtimeBalance('Bob', bob)
+    console.log('---AFTER 30 SECONDS---')
+    time.increase(5)
+    await printRealtimeBalance('Auction Contract', app.address)
+    await printRealtimeBalance('Flow Recipient', '0xe4B47575D73Bc30a13088BD6a4df325E7b05c6c8')
+    await printRealtimeBalance('Bob', bob)
   })
 })

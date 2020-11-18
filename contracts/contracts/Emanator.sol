@@ -74,12 +74,13 @@ contract DSMath {
 
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
+import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
 import "@superfluid-finance/ethereum-contracts/contracts/interfaces/superfluid/ISuperfluid.sol";
 import "@superfluid-finance/ethereum-contracts/contracts/interfaces/agreements/IConstantFlowAgreementV1.sol";
 import "@superfluid-finance/ethereum-contracts/contracts/interfaces/agreements/IInstantDistributionAgreementV1.sol";
 
-contract Emanator is ERC721, IERC721Receiver, DSMath {
+contract Emanator is ERC721, IERC721Receiver, ReentrancyGuard, DSMath {
   using SafeMath for uint256;
 
   uint32 public constant INDEX_ID = 0;
@@ -158,18 +159,8 @@ contract Emanator is ERC721, IERC721Receiver, DSMath {
       require(bidAmount > _auction.highBid, "you must bid more than the current high bid");
       uint perSecBid = bidAmount / winLength;
 
-      host.callAgreement(
-            cfa,
-            abi.encodeWithSelector(
-                cfa.createFlow.selector,
-                tokenX,
-                address(this),
-                perSecBid,
-                new bytes(0)
-            )
-        );
-
-     if (_auction.highBid > 0){
+      // Delete current high bidder's flow 
+      if (_auction.highBid > 0){
          host.callAgreement(
             cfa,
             abi.encodeWithSelector(
@@ -180,7 +171,18 @@ contract Emanator is ERC721, IERC721Receiver, DSMath {
                 new bytes(0)
             )
         );
-     }
+      }
+     
+        // Create new flow to auction from bidder 
+        host.callAgreement(
+            cfa, 
+            abi.encodeWithSelector(
+                cfa.createFlow.selector,
+                tokenX,
+                "0xe4B47575D73Bc30a13088BD6a4df325E7b05c6c8",
+                perSecBid,
+                new bytes(0)
+            ));
 
     //   tokenX.transferFrom(msg.sender, address(this), bidAmount);
 
@@ -200,14 +202,25 @@ contract Emanator is ERC721, IERC721Receiver, DSMath {
       uint256 endTime = _auction.lastBidTime + winLength;
       require(block.timestamp > endTime, "The auction is not over yet");
 
+      // Delete the high bidder's flow
+      host.callAgreement(
+            cfa,
+            abi.encodeWithSelector(
+                cfa.deleteFlow.selector,
+                tokenX,
+                _auction.highBidder,
+                address(this),
+                new bytes(0)
+            )
+        );
+      
       // Mint the NFT
       ERC721._safeMint(_auction.highBidder, currentGeneration);
 
       totalRevenue += tokenX.balanceOf(address(this));
 
-      // All tokens in first auction go to owner
       if (currentGeneration != 1){
-        // Distribute tokens to previous winners
+        // Distribute 30% of auction tokens to previous auction winners
         uint distributeAmount = rmul(tokenX.balanceOf(address(this)), rdiv(3, 10));
         host.callAgreement(
             ida,
@@ -300,4 +313,34 @@ contract Emanator is ERC721, IERC721Receiver, DSMath {
     (,currentUnits,) = ida.getSubscription(tokenX, address(this), INDEX_ID, owner);
     return currentUnits;
   }
+
+  function _beforeTokenTransfer(address from, address to, uint256 tokenId) internal nonReentrant virtual override {
+    super._beforeTokenTransfer(from, to, tokenId);
+
+    // Upon transfer of an ERC721, add sender's royalty shares to receiver in IDA subscription 
+      host.callAgreement(
+        ida,
+        abi.encodeWithSelector(
+          ida.updateSubscription.selector,
+          tokenX,
+          INDEX_ID,
+          to,
+          getSharesOf(from),
+          new bytes(0)
+        )
+      );
+    
+    // Upon transfer of an ERC721, update sender's royalty shares to 0 in IDA subscription 
+      host.callAgreement(
+        ida,
+        abi.encodeWithSelector(
+          ida.updateSubscription.selector,
+          tokenX,
+          INDEX_ID,
+          from,
+          0,
+          new bytes(0)
+        )
+      );
+    }
  }
