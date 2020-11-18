@@ -93,14 +93,14 @@ contract('Emanator', (accounts) => {
     return console.log(`${label} shares: `, shares.toString())
   }
 
-  // it('Deploys the contract', async () => {
-  //   assert.equal(await app.getAuctionBalance.call(), 0)
-  //   await web3tx(app.bid, `Account ${bob} bids 10`)(toWad(10), { from: bob })
-  //   assert.equal(
-  //     (await app.getAuctionBalance.call()).toString(),
-  //     toWad(10).toString()
-  //   )
-  // })
+  it('Deploys the contract', async () => {
+    assert.equal(await app.getAuctionBalance.call(), 0)
+    await web3tx(app.bid, `Account ${bob} bids 10`)(toWad(10), { from: bob })
+    assert.equal(
+      (await app.getAuctionBalance.call()).toString(),
+      toWad(10).toString()
+    )
+  })
   //
   // it('sets Bob as the high bidder', async () => {
   //   assert.equal(await app.getHighBidder.call(), ZERO_ADDRESS)
@@ -214,28 +214,28 @@ contract('Emanator', (accounts) => {
   //   // TODO : write logic to check the expected distribution split
   // })
 
-  it('allows Bob to create a bidding flow', async () => {
+  // it('allows Bob to create a bidding flow to hardcoded recipient', async () => {
 
-    await printRealtimeBalance('Auction Contract', app.address)
-    await printRealtimeBalance('Creator', creator)
-    await printRealtimeBalance('Flow Recipient', '0xe4B47575D73Bc30a13088BD6a4df325E7b05c6c8')
-    await printRealtimeBalance('Bob', bob)
+  //   await printRealtimeBalance('Auction Contract', app.address)
+  //   await printRealtimeBalance('Creator', creator)
+  //   await printRealtimeBalance('Flow Recipient', '0xe4B47575D73Bc30a13088BD6a4df325E7b05c6c8')
+  //   await printRealtimeBalance('Bob', bob)
 
-    await web3tx(app.bid, `Account ${bob} bids 1 DAI per second`)(toWad(30), { from: bob })
-    console.log('---AFTER 6 SECONDS---')
-    time.increase(6)
-    await printRealtimeBalance('Auction Contract', app.address)
-    await printRealtimeBalance('Flow Recipient', '0xe4B47575D73Bc30a13088BD6a4df325E7b05c6c8')
-    await printRealtimeBalance('Bob', bob)
-    console.log('---AFTER 25 SECONDS---')
-    time.increase(19)
-    await printRealtimeBalance('Auction Contract', app.address)
-    await printRealtimeBalance('Flow Recipient', '0xe4B47575D73Bc30a13088BD6a4df325E7b05c6c8')
-    await printRealtimeBalance('Bob', bob)
-    console.log('---AFTER 30 SECONDS---')
-    time.increase(5)
-    await printRealtimeBalance('Auction Contract', app.address)
-    await printRealtimeBalance('Flow Recipient', '0xe4B47575D73Bc30a13088BD6a4df325E7b05c6c8')
-    await printRealtimeBalance('Bob', bob)
-  })
+  //   await web3tx(app.bid, `Account ${bob} bids 1 DAI per second`)(toWad(30), { from: bob })
+  //   console.log('---AFTER 6 SECONDS---')
+  //   time.increase(6)
+  //   await printRealtimeBalance('Auction Contract', app.address)
+  //   await printRealtimeBalance('Flow Recipient', '0xe4B47575D73Bc30a13088BD6a4df325E7b05c6c8')
+  //   await printRealtimeBalance('Bob', bob)
+  //   console.log('---AFTER 25 SECONDS---')
+  //   time.increase(19)
+  //   await printRealtimeBalance('Auction Contract', app.address)
+  //   await printRealtimeBalance('Flow Recipient', '0xe4B47575D73Bc30a13088BD6a4df325E7b05c6c8')
+  //   await printRealtimeBalance('Bob', bob)
+  //   console.log('---AFTER 30 SECONDS---')
+  //   time.increase(5)
+  //   await printRealtimeBalance('Auction Contract', app.address)
+  //   await printRealtimeBalance('Flow Recipient', '0xe4B47575D73Bc30a13088BD6a4df325E7b05c6c8')
+  //   await printRealtimeBalance('Bob', bob)
+  // })
 })
