@@ -179,7 +179,7 @@ contract Emanator is ERC721, IERC721Receiver, ReentrancyGuard, DSMath {
             abi.encodeWithSelector(
                 cfa.createFlow.selector,
                 tokenX,
-                "0xe4B47575D73Bc30a13088BD6a4df325E7b05c6c8",
+                address(this),
                 perSecBid,
                 new bytes(0)
             ));
