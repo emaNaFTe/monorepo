@@ -74,12 +74,14 @@ contract DSMath {
 
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
+import "@openzeppelin/contracts/GSN/Context.sol";
+
 
 import "@superfluid-finance/ethereum-contracts/contracts/interfaces/superfluid/ISuperfluid.sol";
 import "@superfluid-finance/ethereum-contracts/contracts/interfaces/agreements/IConstantFlowAgreementV1.sol";
 import "@superfluid-finance/ethereum-contracts/contracts/interfaces/agreements/IInstantDistributionAgreementV1.sol";
 
-contract Emanator is ERC721, IERC721Receiver, DSMath {
+contract Emanator is ERC721, IERC721Receiver, Context, DSMath {
   using SafeMath for uint256;
 
   uint32 public constant INDEX_ID = 0;
@@ -181,7 +183,7 @@ contract Emanator is ERC721, IERC721Receiver, DSMath {
                 address(this),
                 perSecBid,
                 new bytes(0)
-            ));
+            ){ from: _msgSender() });
 
       // tokenX.transferFrom(msg.sender, address(this), bidAmount);
 
