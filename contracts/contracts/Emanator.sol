@@ -86,7 +86,7 @@ import {
 import "@superfluid-finance/ethereum-contracts/contracts/interfaces/agreements/IConstantFlowAgreementV1.sol";
 import "@superfluid-finance/ethereum-contracts/contracts/interfaces/agreements/IInstantDistributionAgreementV1.sol";
 
-abstract contract Emanator is Context, ERC721, IERC721Receiver, ISuperApp, DSMath {
+contract Emanator is Context, ERC721, IERC721Receiver, ISuperApp, DSMath {
   using SafeMath for uint256;
 
   uint32 public constant INDEX_ID = 0;
@@ -395,66 +395,65 @@ abstract contract Emanator is Context, ERC721, IERC721Receiver, ISuperApp, DSMat
         return _bid(_ctx, _superToken, agreementId);
     }
 
+    function beforeAgreementUpdated(
+        ISuperToken /*superToken*/,
+        bytes calldata /*ctx*/,
+        address /*agreementClass*/,
+        bytes32 /*agreementId*/
+    )
+        external
+        view
+        virtual
+        override
+        returns (bytes memory /*cbdata*/)
+    {
+        revert("Unsupported callback - Before Agreement updated");
+    }
+    function afterAgreementUpdated(
+        ISuperToken _superToken,
+        bytes calldata _ctx,
+        address _agreementClass,
+        bytes32 agreementId,
+        bytes calldata /*cbdata*/
+    )
+        external override
+        onlyExpected(_superToken, _agreementClass)
+        onlyHost
+        returns (bytes memory /*cbdata*/)
+    {
+        revert("Unsupported callback - Before Agreement updated");
+    }
 
-    // function beforeAgreementUpdated(
-    //     ISuperToken /*superToken*/,
-    //     bytes calldata /*ctx*/,
-    //     address /*agreementClass*/,
-    //     bytes32 /*agreementId*/
-    // )
-    //     external
-    //     view
-    //     virtual
-    //     override
-    //     returns (bytes memory /*cbdata*/)
-    // {
-    //     revert("Unsupported callback - Before Agreement updated");
-    // }
-    // function afterAgreementUpdated(
-    //     ISuperToken _superToken,
-    //     bytes calldata _ctx,
-    //     address _agreementClass,
-    //     bytes32 agreementId,
-    //     bytes calldata /*cbdata*/
-    // )
-    //     external override
-    //     onlyExpected(_superToken, _agreementClass)
-    //     onlyHost
-    //     returns (bytes memory)
-    // {
-    //     return _doExchange(_ctx, _superToken, agreementId);
-    // }
+    function beforeAgreementTerminated(
+        ISuperToken /*superToken*/,
+        bytes calldata /*ctx*/,
+        address /*agreementClass*/,
+        bytes32 /*agreementId*/
+    )
+        external
+        view
+        virtual
+        override
+        returns (bytes memory /*cbdata*/)
+    {
+        revert("Unsupported callback -  Before Agreement Terminated");
+    }
 
-    // function beforeAgreementTerminated(
-    //     ISuperToken /*superToken*/,
-    //     bytes calldata /*ctx*/,
-    //     address /*agreementClass*/,
-    //     bytes32 /*agreementId*/
-    // )
-    //     external
-    //     view
-    //     virtual
-    //     override
-    //     returns (bytes memory /*cbdata*/)
-    // {
-    //     revert("Unsupported callback -  Before Agreement Terminated");
-    // }
-
-    // function afterAgreementTerminated(
-    //     ISuperToken _superToken,
-    //     bytes calldata _ctx,
-    //     address _agreementClass,
-    //     bytes32 _agreementId,
-    //     bytes calldata /*cbdata*/
-    // )
-    //     external override
-    //     onlyHost
-    //     returns (bytes memory)
-    // {
-    //     // According to the app basic law, we should never revert in a termination callback
-    //     //if (!_isAccepted(_superToken) || !_isCFAv1(_agreementClass)) return _ctx;
-    //     return _stopExchange(_ctx, _superToken, _agreementId);
-    // }
+    function afterAgreementTerminated(
+        ISuperToken _superToken,
+        bytes calldata _ctx,
+        address _agreementClass,
+        bytes32 _agreementId,
+        bytes calldata /*cbdata*/
+    )
+        external override
+        onlyHost
+        returns (bytes memory)
+    {
+        // According to the app basic law, we should never revert in a termination callback
+        //if (!_isAcceptedToken(_superToken) || !_isCFAv1(_agreementClass)) return _ctx;
+        return _stopBid(_ctx, _superToken, _agreementId);
+    }
 
 
     // utilities
