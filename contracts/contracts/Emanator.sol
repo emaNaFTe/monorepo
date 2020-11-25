@@ -86,7 +86,7 @@ import {
 import "@superfluid-finance/ethereum-contracts/contracts/interfaces/agreements/IConstantFlowAgreementV1.sol";
 import "@superfluid-finance/ethereum-contracts/contracts/interfaces/agreements/IInstantDistributionAgreementV1.sol";
 
-contract Emanator is Context, ERC721, IERC721Receiver, ISuperApp, DSMath {
+abstract contract Emanator is Context, ERC721, IERC721Receiver, ISuperApp, DSMath {
   using SafeMath for uint256;
 
   uint32 public constant INDEX_ID = 0;
