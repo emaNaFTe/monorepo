@@ -322,9 +322,9 @@ contract Emanator is Context, ERC721, IERC721Receiver, ISuperApp, DSMath {
       return ( _auction.highBid, _auction.highBidder, _auction.lastBidTime, currentGeneration);
   }
 
-  function getAuctionInfo(uint id) public view returns ( uint highBid, address highBidder, uint lastBidTime, uint revenue){
+  function getAuctionInfo(uint id) public view returns ( uint highBid, address highBidder, uint lastBidTime){
       Auction storage _auction = auctionByGeneration[id];
-      return ( _auction.highBid, _auction.highBidder, _auction.lastBidTime, _auction.revenue);
+      return ( _auction.highBid, _auction.highBidder, _auction.lastBidTime);
   }
 
   function getTotalRevenue() public view returns (uint revenue){
