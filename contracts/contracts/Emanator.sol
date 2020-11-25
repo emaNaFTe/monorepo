@@ -448,11 +448,9 @@ contract Emanator is Context, ERC721, IERC721Receiver, ISuperApp, DSMath {
     )
         external override
         onlyHost
-        returns (bytes memory)
+          returns (bytes memory /*cbdata*/)
     {
-        // According to the app basic law, we should never revert in a termination callback
-        //if (!_isAcceptedToken(_superToken) || !_isCFAv1(_agreementClass)) return _ctx;
-        return _stopBid(_ctx, _superToken, _agreementId);
+        revert("Unsupported callback - After Agreement Terminated");
     }
 
 
