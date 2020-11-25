@@ -220,6 +220,19 @@ contract('Emanator', (accounts) => {
     await printRealtimeBalance('Creator', creator)
     await printRealtimeBalance('Bob', bob)
 
+    await web3tx(
+      sf.host.callAgreement,
+      `Bob ${bob} creates a flow to the Auction contract SuperApp`
+    )(
+      sf.agreements.cfa.address,
+      sf.agreements.cfa.contract.methods
+        .createFlow(daix, app.address, toWad(1), '0x')
+        .encodeABI(),
+      {
+        from: bob,
+      }
+    )
+
     await web3tx(app.bid, `Account ${bob} bids 1 DAI per second`)(toWad(30), { from: bob })
     console.log('---AFTER 6 SECONDS---')
     time.increase(6)

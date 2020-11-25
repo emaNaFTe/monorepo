@@ -76,17 +76,17 @@ import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 import "@openzeppelin/contracts/GSN/Context.sol";
 
+
 import {
-    ISuperfluid,
-    ISuperToken,
-    ISuperApp,
-    ISuperAgreement,
-    SuperAppDefinitions
-} from "@superfluid-finance/ethereum-contracts/contracts/interfaces/superfluid/ISuperfluid.sol";
+  ISuperfluid,
+  ISuperToken,
+  ISuperApp,
+  SuperAppDefinitions,
+  ISuperAgreement } from "@superfluid-finance/ethereum-contracts/contracts/interfaces/superfluid/ISuperfluid.sol";
 import "@superfluid-finance/ethereum-contracts/contracts/interfaces/agreements/IConstantFlowAgreementV1.sol";
 import "@superfluid-finance/ethereum-contracts/contracts/interfaces/agreements/IInstantDistributionAgreementV1.sol";
 
-contract Emanator is ERC721, IERC721Receiver, Context, DSMath, ISuperApp {
+contract Emanator is Context, ERC721, IERC721Receiver, ISuperApp, DSMath {
   using SafeMath for uint256;
 
   uint32 public constant INDEX_ID = 0;
@@ -109,7 +109,7 @@ contract Emanator is ERC721, IERC721Receiver, Context, DSMath, ISuperApp {
     uint256 highBid;
     address owner;
     address highBidder;
-    uint256 revenue;
+    // uint256 revenue;
   }
 
   mapping (uint256 => Auction) public auctionByGeneration;
@@ -131,14 +131,6 @@ contract Emanator is ERC721, IERC721Receiver, Context, DSMath, ISuperApp {
       creator = msg.sender;
       setApprovalForAll(address(this), true);
 
-      uint256 configWord =
-            SuperAppDefinitions.TYPE_APP_FINAL |
-            SuperAppDefinitions.BEFORE_AGREEMENT_CREATED_NOOP |
-            SuperAppDefinitions.BEFORE_AGREEMENT_UPDATED_NOOP |
-            SuperAppDefinitions.BEFORE_AGREEMENT_TERMINATED_NOOP;
-
-      host.registerApp(configWord);
-
       host.callAgreement(
           ida,
           abi.encodeWithSelector(
@@ -148,6 +140,14 @@ contract Emanator is ERC721, IERC721Receiver, Context, DSMath, ISuperApp {
               new bytes(0)
           )
       );
+
+      uint256 configWord =
+      SuperAppDefinitions.TYPE_APP_FINAL |
+        SuperAppDefinitions.BEFORE_AGREEMENT_CREATED_NOOP |
+        SuperAppDefinitions.BEFORE_AGREEMENT_UPDATED_NOOP |
+        SuperAppDefinitions.BEFORE_AGREEMENT_TERMINATED_NOOP;
+
+      host.registerApp(configWord);
 
       ERC721._safeMint(msg.sender, 0);
       // Start the first auction
@@ -159,7 +159,59 @@ contract Emanator is ERC721, IERC721Receiver, Context, DSMath, ISuperApp {
   }
 
   // Submit a higher bid and increase the length of the auction
-  function bid(uint bidAmount) public returns (uint256 highBid, uint256 lastBidTime, address highBidder) {
+//   function bid(uint bidAmount) public returns (uint256 highBid, uint256 lastBidTime, address highBidder) {
+//       Auction storage _auction = auctionByGeneration[currentGeneration];
+//       uint256 endTime;
+//       if(_auction.highBid > 0){
+//           endTime = _auction.lastBidTime + winLength;
+//       } else {
+//           endTime = block.timestamp * 2;
+//       }
+
+//       require(block.timestamp < endTime, "The current auction has ended. Please start a new one.");
+//       // TODO: Add a minimum bid increase threshold
+//       require(bidAmount > _auction.highBid, "you must bid more than the current high bid");
+//       uint perSecBid = bidAmount / winLength;
+      
+//       // Delete current high bidder's flow 
+//       if (_auction.highBid > 0){
+//          host.callAgreement(
+//             cfa,
+//             abi.encodeWithSelector(
+//                 cfa.deleteFlow.selector,
+//                 tokenX,
+//                 _auction.highBidder,
+//                 address(this),
+//                 new bytes(0)
+//             )
+//           );
+//         }
+
+//         // Create new flow to auction from bidder 
+//         host.callAgreement(
+//             cfa, 
+//             abi.encodeWithSelector(
+//                 cfa.createFlow.selector,
+//                 tokenX,
+//                 address(this),
+//                 perSecBid,
+//                 new bytes(0)
+//             )) ;
+
+//       // tokenX.transferFrom(msg.sender, address(this), bidAmount);
+
+//       _auction.highBid = bidAmount;
+//       _auction.highBidder = msg.sender;
+//       _auction.lastBidTime = block.timestamp;
+//       _auction.revenue += bidAmount;
+
+//       return (_auction.highBid, _auction.lastBidTime, _auction.highBidder);
+//   }
+
+    function _bid(bytes calldata _ctx, ISuperToken _tokenX, bytes32 agreementId)
+        private
+        returns (bytes memory newCtx)
+    {
       Auction storage _auction = auctionByGeneration[currentGeneration];
       uint256 endTime;
       if(_auction.highBid > 0){
@@ -170,43 +222,36 @@ contract Emanator is ERC721, IERC721Receiver, Context, DSMath, ISuperApp {
 
       require(block.timestamp < endTime, "The current auction has ended. Please start a new one.");
       // TODO: Add a minimum bid increase threshold
-      require(bidAmount > _auction.highBid, "you must bid more than the current high bid");
-      uint perSecBid = bidAmount / winLength;
+      
 
-      // Delete current high bidder's flow 
-      if (_auction.highBid > 0){
-         host.callAgreement(
-            cfa,
-            abi.encodeWithSelector(
-                cfa.deleteFlow.selector,
-                tokenX,
-                _auction.highBidder,
-                address(this),
-                new bytes(0)
-            ) {from: msg.sender}
-          );
-        }
+      (,,address user,,) = host.decodeCtx(_ctx);
+      (,int96 flowRate,,) = cfa.getFlowByID(_tokenX, agreementId);
 
-        // Create new flow to auction from bidder 
-        host.callAgreement(
-            cfa, 
-            abi.encodeWithSelector(
-                cfa.createFlow.selector,
-                tokenX,
-                address(this),
-                perSecBid,
-                new bytes(0)
-            ){ from: _msgSender} );
+      uint256 adjFlowRate = uint256(flowRate);
 
-      // tokenX.transferFrom(msg.sender, address(this), bidAmount);
+      require(adjFlowRate > _auction.highBid, "You must bid more than the current high bid");
+      
+      (newCtx, ) = host.callAgreementWithContext(
+          cfa,
+          abi.encodeWithSelector(
+              cfa.createFlow.selector,
+              _tokenX,
+              address(this),
+              flowRate,
+              new bytes(0) // placeholder
+          ),
+          _ctx
+      );
 
-      _auction.highBid = bidAmount;
-      _auction.highBidder = msg.sender;
+      _auction.highBid = adjFlowRate;
+      _auction.highBidder = user;
       _auction.lastBidTime = block.timestamp;
-      _auction.revenue += bidAmount;
+      
+      return _ctx;
+    }
+    
+      
 
-      return (_auction.highBid, _auction.lastBidTime, _auction.highBidder);
-  }
 
   // End the auction and claim prized
   function settleAndBeginAuction() public returns (uint newShareAmount) {
@@ -320,117 +365,118 @@ contract Emanator is ERC721, IERC721Receiver, Context, DSMath, ISuperApp {
   /**************************************************************************
      * SuperApp callbacks
      *************************************************************************/
-//      function beforeAgreementCreated(
-//          ISuperToken /*superToken*/,
-//          bytes calldata /*ctx*/,
-//          address /*agreementClass*/,
-//          bytes32 /*agreementId*/
-//      )
-//          external
-//          view
-//          virtual
-//          override
-//          returns (bytes memory /*cbdata*/)
-//          {
-//              revert("Unsupported callback - Before Agreement Created");
-//          }
+     function beforeAgreementCreated(
+         ISuperToken /*superToken*/,
+         bytes calldata /*ctx*/,
+         address /*agreementClass*/,
+         bytes32 /*agreementId*/
+     )
+         external
+         view
+         virtual
+         override
+         returns (bytes memory /*cbdata*/)
+         {
+             revert("Unsupported callback - Before Agreement Created");
+         }
 
-//     function afterAgreementCreated(
-//         ISuperToken _tokenX,
-//         bytes calldata _ctx,
-//         address _agreementClass,
-//         bytes32 agreementId,
-//         bytes calldata /*cbdata*/
-//     )
-//         external override
-//         onlyExpected(_tokenX, _agreementClass)
-//         onlyHost
-//         returns (bytes memory)
-//     {
-//         return _bid(_ctx, _tokenX, agreementId);
-//     }
-
-
-//     function beforeAgreementUpdated(
-//         ISuperToken /*superToken*/,
-//         bytes calldata /*ctx*/,
-//         address /*agreementClass*/,
-//         bytes32 /*agreementId*/
-//     )
-//         external
-//         view
-//         virtual
-//         override
-//         returns (bytes memory /*cbdata*/)
-//     {
-//         revert("Unsupported callback - Before Agreement updated");
-//     }
-//     function afterAgreementUpdated(
-//         ISuperToken _superToken,
-//         bytes calldata _ctx,
-//         address _agreementClass,
-//         bytes32 agreementId,
-//         bytes calldata /*cbdata*/
-//     )
-//         external override
-//         onlyExpected(_superToken, _agreementClass)
-//         onlyHost
-//         returns (bytes memory)
-//     {
-//         return _doExchange(_ctx, _superToken, agreementId);
-//     }
-
-//     function beforeAgreementTerminated(
-//         ISuperToken /*superToken*/,
-//         bytes calldata /*ctx*/,
-//         address /*agreementClass*/,
-//         bytes32 /*agreementId*/
-//     )
-//         external
-//         view
-//         virtual
-//         override
-//         returns (bytes memory /*cbdata*/)
-//     {
-//         revert("Unsupported callback -  Before Agreement Terminated");
-//     }
-
-//     function afterAgreementTerminated(
-//         ISuperToken _superToken,
-//         bytes calldata _ctx,
-//         address _agreementClass,
-//         bytes32 _agreementId,
-//         bytes calldata /*cbdata*/
-//     )
-//         external override
-//         onlyHost
-//         returns (bytes memory)
-//     {
-//         // According to the app basic law, we should never revert in a termination callback
-//         //if (!_isAccepted(_superToken) || !_isCFAv1(_agreementClass)) return _ctx;
-//         return _stopExchange(_ctx, _superToken, _agreementId);
-//     }
+      function afterAgreementCreated(
+        ISuperToken _superToken,
+        bytes calldata _ctx,
+        address _agreementClass,
+        bytes32 agreementId,
+        bytes calldata /*cbdata*/
+    )
+        external override
+        onlyExpected(_superToken, _agreementClass)
+        onlyHost
+        returns (bytes memory)
+    {
+        return _bid(_ctx, _superToken, agreementId);
+    }
 
 
-//     // utilities
-//     function _isAccepted(ISuperToken _tokenX) private view returns (bool) {
-//         return address(_tokenX) == address(tokenX);
-//     }
+    // function beforeAgreementUpdated(
+    //     ISuperToken /*superToken*/,
+    //     bytes calldata /*ctx*/,
+    //     address /*agreementClass*/,
+    //     bytes32 /*agreementId*/
+    // )
+    //     external
+    //     view
+    //     virtual
+    //     override
+    //     returns (bytes memory /*cbdata*/)
+    // {
+    //     revert("Unsupported callback - Before Agreement updated");
+    // }
+    // function afterAgreementUpdated(
+    //     ISuperToken _superToken,
+    //     bytes calldata _ctx,
+    //     address _agreementClass,
+    //     bytes32 agreementId,
+    //     bytes calldata /*cbdata*/
+    // )
+    //     external override
+    //     onlyExpected(_superToken, _agreementClass)
+    //     onlyHost
+    //     returns (bytes memory)
+    // {
+    //     return _doExchange(_ctx, _superToken, agreementId);
+    // }
 
-//     function _isCFAv1(address _agreementClass) private pure returns (bool) {
-//         return ISuperAgreement(_agreementClass).agreementType()
-//             == keccak256("org.superfluid-finance.agreements.ConstantFlowAgreement.v1");
-//     }
+    // function beforeAgreementTerminated(
+    //     ISuperToken /*superToken*/,
+    //     bytes calldata /*ctx*/,
+    //     address /*agreementClass*/,
+    //     bytes32 /*agreementId*/
+    // )
+    //     external
+    //     view
+    //     virtual
+    //     override
+    //     returns (bytes memory /*cbdata*/)
+    // {
+    //     revert("Unsupported callback -  Before Agreement Terminated");
+    // }
 
-//     modifier onlyHost() {
-//         require(msg.sender == address(host), "RedirectAll: support only one host");
-//         _;
-//     }
+    // function afterAgreementTerminated(
+    //     ISuperToken _superToken,
+    //     bytes calldata _ctx,
+    //     address _agreementClass,
+    //     bytes32 _agreementId,
+    //     bytes calldata /*cbdata*/
+    // )
+    //     external override
+    //     onlyHost
+    //     returns (bytes memory)
+    // {
+    //     // According to the app basic law, we should never revert in a termination callback
+    //     //if (!_isAccepted(_superToken) || !_isCFAv1(_agreementClass)) return _ctx;
+    //     return _stopExchange(_ctx, _superToken, _agreementId);
+    // }
 
-//     modifier onlyExpected(ISuperToken _tokenX, address _agreementClass) {
-//         require(_isAccepted(_tokenX) , "Exchange: not accepted token");
-//         require(_isCFAv1(_agreementClass), "Exchange: only CFAv1 supported");
-//         _;
-//     }
 
-//  }
+    // utilities
+    function _isAcceptedToken(ISuperToken _superToken) private view returns (bool) {
+        return address(_superToken) == address(tokenX);
+    }
+
+    function _isCFAv1(address _agreementClass) private pure returns (bool) {
+        return ISuperAgreement(_agreementClass).agreementType()
+            == keccak256("org.superfluid-finance.agreements.ConstantFlowAgreement.v1");
+    }
+
+    modifier onlyHost() {
+        require(msg.sender == address(host), "Auction: supports only one host");
+        _;
+    }
+
+    modifier onlyExpected(ISuperToken _superToken, address _agreementClass) {
+        require(_isAcceptedToken(_superToken), "Auction: not accepted token");
+        require(_isCFAv1(_agreementClass), "Auction: only CFAv1 supported");
+        _;
+    }
+
+
+ }
